@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Entrayn Intermediate Page</title>
+</head>
+<body>
+	<script>
+		var funda = window.location.href;
+      	var funda2 = funda.split("#");
+      	var la = "upform.html#"+funda2[1];
+      	var lb = "alter.html#"+funda2[1];
+	    if (/Firefox[\/\s](\d+\.\d+)/.test(navigator.userAgent)
+	    	||/Chrome[\/\s](\d+\.\d+)/.test(navigator.userAgent)
+	    	||/Opera[\/\s](\d+\.\d+)/.test(navigator.userAgent)) {
+			window.location = la;	    		
+		}
+       	else {
+       		window.location = lb;
+		}
+    </script>
+</body>
+</html>

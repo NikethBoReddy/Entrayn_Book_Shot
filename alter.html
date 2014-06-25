@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Entrayn Sender Form</title>
+</head>
+<body>
+	<script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
+	<script>
+		
+		var funda = window.location.href;
+      	var funda2 = funda.split("#");
+      	var ht;
+		var wd;
+		$(function(){
+			ran = document.getElementById("range");
+			input = document.getElementById("input");
+			input.addEventListener('change',handleFiles);
+			function handleFiles(e) {
+			    ctxSrc = document.getElementById('canvas-src').getContext('2d');
+			    ctxDest = document.getElementById('canvas-dest').getContext('2d');
+			    var img = new Image;
+			    img.src = URL.createObjectURL(e.target.files[0]);
+			    img.onload = function() {
+					ht = img.height;
+				    wd = img.width;
+				    document.getElementById('canvas-src').setAttribute("width",wd);
+				    document.getElementById('canvas-src').setAttribute("height",ht);
+				    document.getElementById('canvas-dest').setAttribute("width",wd);
+				    document.getElementById('canvas-dest').setAttribute("height",ht);
+				    document.getElementById('endimage').setAttribute("width",wd);
+				    document.getElementById('endimage').setAttribute("height",ht);
+			    	ctxSrc.drawImage(img,0,0,wd,ht);
+					ctxDest.drawImage(img,0,0,wd,ht);
+			  	    iitm_image_proc(1000);
+			  	    document.getElementById('dest').src = document.getElementById('canvas-dest').toDataURL('image/jpeg');
+			  	    document.getElementById('org').src = document.getElementById('canvas-src').toDataURL('image/jpeg');
+					document.getElementById("a").disabled = false;
+					document.getElementById("b").disabled = false;
+					document.getElementById("tag").value = funda2[1];
+			   	}
+			}
+		});
+
+    	function iitm_image_proc(x){
+			imPixels = ctxSrc.getImageData(0,0,wd,ht);
+			for(var i = 0; i < imPixels.data.length ; i+=4){
+				  var avg =  ( ( (imPixels.data[i]) * 0.299 ) + ( (imPixels.data[i + 1]) * 0.587 ) + ( (imPixels.data[i + 2]) * 0.114 ) );
+				  imPixels.data[i] = avg;
+				  imPixels.data[i + 1] = avg;
+				  imPixels.data[i + 2] = avg;
+			}
+			var s=0;
+			var vari=0;
+			for(var i = 0; i < imPixels.data.length ; i+=4){
+				  s=s+imPixels.data[i];
+			}
+			s=s/(imPixels.data.length/4);
+			for(var i = 0; i < imPixels.data.length ; i+=4){
+				  vari=vari+(imPixels.data[i]-s)*(imPixels.data[i]-s);		
+			}
+			vari=vari/(imPixels.data.length/4);
+			var dev;
+			dev=Math.sqrt(vari);
+			if(x==1000){
+				if(s>168){
+					n=(((dev/s-0.18))*1.5)+0.45;
+					q=n*dev;
+				}
+				else{
+					if(dev>=(0.4*s)){
+						q=-0.1*s;
+					}
+					else{
+						if(dev/s<=0.24){
+							q=1*dev;
+						}	
+						else{
+							q=1.5*dev;
+						}
+					}
+				}
+				n=q/dev;
+				ran.value=n;
+			}
+			else q=x*dev;
+			for(var i = 0; i < imPixels.data.length ; i+=4){
+				  if(imPixels.data[i]<(s-q)){
+						imPixels.data[i]=imPixels.data[i+1]=imPixels.data[i+2]=0;
+				  }
+					else{
+						imPixels.data[i]=imPixels.data[i+1]=imPixels.data[i+2]=255;
+			 		}
+			}
+			ctxDest.putImageData(imPixels,0,0);
+			document.getElementById('dest').src = document.getElementById('canvas-dest').toDataURL('image/jpeg');
+		}
+
+		function set(x){
+			if(x == 1){
+				var ID = ctxDest.getImageData(0,0,wd,ht);
+			}
+			if(x == 2){
+				var ID = ctxSrc.getImageData(0,0,wd,ht);
+			}
+			document.getElementById("endimage").getContext("2d").putImageData(ID,0,0);
+			imagedata = document.getElementById("endimage").toDataURL("image/jpeg");
+			document.getElementById("val").value = imagedata;
+
+		}
+
+		function clear(){
+			document.getElementById("canvas-dest").getContext("2d").clearRect(0,0,wd,ht);
+			document.getElementById("canvas-src").getContext("2d").clearRect(0,0,wd,ht);
+			document.getElementById("endimage").getContext("2d").clearRect(0,0,wd,ht);
+		}
+
+    </script>
+    <h1 style="text-align:center;" ><u>Entrayn Upload Form</u></h1>
+	<input type="file" id="input" onclick = "clear();"/><br>
+	<h3 id="c" >Click on one of the following images to Upload:</h3>
+	<button  id="a" onclick = "set(1);" disabled ><img id="dest" src="" width="400"/><canvas style="display:none;" id="canvas-dest"></canvas> <br>Processed Image</button><br>
+	<div id="d">Darker <input onchange="iitm_image_proc(value)" id="range" type="range" id="a" min="-2.0" value="0" max="2.0" step="0.1" />Lighter</div>
+	<button  id="b" onclick = "set(2);" disabled><img id="org" src="" width="400"/> <canvas style="display:none;" id="canvas-src"></canvas> <br>Original Image</button><br/>
+	<h3>Sent Image:</h3>
+	<canvas id="endimage"></canvas><br>
+	<form id="send" action="hold.php" method="post">
+		<input id="val" type="text" name="imgid" style="display:none" />
+		<input id="tag" type="text" name="filename" style="display:none" />
+		<input class="button" id="butt" type="submit" value="Send Image" />
+	</form><br/>
+
+</body>
+</html>

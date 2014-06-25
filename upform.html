@@ -1,0 +1,321 @@
+<html>
+
+<head>
+
+	<script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
+	<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.8/jquery.min.js"></script>
+	<script type="text/javascript" src="http://cdn.peerjs.com/0.3/peer.js"></script>
+	<script>
+		var peer = new Peer({
+			// Set API key for cloud server (you don't need this if you're running your own.
+			key: 'lwjd5qra8257b9',
+			// Set highest debug level (log everything!).
+			debug: 3,
+			// Set a logging function:
+			logFunction: function(){
+				var copy = Array.prototype.slice.call(arguments).join(' ');
+				$('.log').append(copy + '<br>');
+			},
+			// Use a TURN server for more network support
+			config: {'iceServers': [
+				{ url: 'stun:stun.l.google.com:19302' }
+			]} /* Sample servers, please use appropriate ones */
+		});
+
+		var connectedPeers = {};
+			
+		// Await connections from others
+		peer.on('connection', connect);
+
+		// Handle a connection object.
+		function connect(c){
+  			// Handle a chat connection.
+  			c.on('data', function(data){
+				document.getElementById("butt").disabled = false;
+			});
+			if (c.label === 'chat'){
+				var chatbox = $('<div></div>').addClass('connection').addClass('active').attr('id', c.peer);
+				//var header = $('<h1></h1>').html('Images from <strong>' + c.peer + '</strong>');
+				//var messages = $('<div><em>Peer connected.</em></div>').addClass('messages');
+				//chatbox.append(header);
+				//chatbox.append(messages);
+				// Select connection handler.
+				//chatbox.on('click', function(){
+      			//	if ($(this).attr('class').indexOf('active') === -1) $(this).addClass('active');
+				//	else $(this).removeClass('active');
+    			//});
+    			//$('.filler').hide();
+    			$('#connections').append(chatbox);
+				//c.on('data', function(data){
+      				//messages.append('<div><span class="peer">' + c.peer + '</span>: ' + data + '</div>');
+				//});
+				//document.getElementById("connections").style.visibility = "hidden";
+        		c.on('close', function(){
+          			//alert(c.peer + ' has left the chat.');
+          			//chatbox.remove();
+          			//if ($('.connection').length === 0) $('.filler').show();
+					delete connectedPeers[c.peer];
+				});
+			}
+			/*else if (c.label === 'file'){
+    			c.on('data', function(data){
+     				// If we're getting a file, create a URL for it.
+      				if (data.constructor === ArrayBuffer){
+						var dataView = new Uint8Array(data);
+						var dataBlob = new Blob([dataView]);
+						var url = window.URL.createObjectURL(dataBlob);
+						$('#' + c.peer).find('.messages').append('<div><span class="file">' + c.peer + ' has sent you a <a target="_blank" href="' + url + '">file</a>.</span></div>');
+					}
+				});
+			}*/
+		}
+
+		$(document).ready(function(){
+			// Prepare file drop box.
+			/*var box = $('#box');
+			box.on('dragenter', doNothing);
+			box.on('dragover', doNothing);
+			box.on('drop', function(e){
+				e.originalEvent.preventDefault();
+				var file = e.originalEvent.dataTransfer.files[0];
+					eachActiveConnection(function(c, $c){
+      						if (c.label === 'file'){
+        						c.send(file);
+							$c.find('.messages').append('<div><span class="file">You sent a file.</span></div>');
+      						}
+    					});
+  				});*/
+  				function doNothing(e){
+    					e.preventDefault();
+    					e.stopPropagation();
+  				}
+
+ 				 // Connect to a peer
+					var funda = window.location.href;
+      				var funda2 = funda.split("#");
+      				//var la = "http://localhost/first/open.html#"+funda2[1];
+      				//document.getElementById('close').href = la;
+    				requestedPeer = funda2[1];
+    				if (!connectedPeers[requestedPeer]){
+      					// Create 2 connections, one labelled chat and another labelled file.
+      					var c = peer.connect(requestedPeer,{
+        					label: 'chat',
+						serialization: 'none',
+						reliable: false,
+        					metadata: {message: 'hi i want to chat with you!'}
+      					});
+					c.on('open', function() {
+						connect(c);
+					});
+					c.on('error', function(err) { alert(err); });
+					/*var f = peer.connect(requestedPeer, { label: 'file' });
+					f.on('open', function() {
+        					connect(f);
+					});
+					f.on('error', function(err) { alert(err); });*/
+				}
+   	 			connectedPeers[requestedPeer] = 1;
+
+  				// Close a connection.
+  				$('#close').click(function(){
+    					eachActiveConnection(function(c){
+      						c.close();
+    					});
+  				});
+
+  				// Send a chat message to all active connections.
+  				$('#send').submit(function(e){
+    					e.preventDefault();
+    					// For each active connection, send the message.
+					var cvs = document.getElementById("endimage");
+					var msg = cvs.toDataURL("image/jpeg");
+    					eachActiveConnection(function(c, $c){
+      						if (c.label === 'chat'){
+      							//c.send(wd);
+      							//c.send(ht);
+        						//c.send(msg);
+        						var delay = 30;
+								  var charSlice = 10000;
+								  var dataSent = 0;
+								  var intervalID = 0;
+
+								  intervalID = setInterval(function(){
+								    var slideEndIndex = dataSent + charSlice;
+								    if (slideEndIndex > msg.length) {
+								      slideEndIndex = msg.length;
+								    }
+								    c.send(msg.slice(dataSent, slideEndIndex));
+								    dataSent = slideEndIndex;
+								    if (dataSent + 1 >= msg.length) {
+								      c.send("\n");
+								      clearInterval(intervalID);
+								    }
+								  }, delay);
+
+        						//$c.find('.messages').append('<div><span class="you">You: </span>' + msg + '</div>');
+      						}
+    					});
+    					//$('#text').val('');
+    					//$('#text').focus();
+  				});
+
+  				// Goes through each active peer and calls FN on its connections.
+  				function eachActiveConnection(fn){
+    					var actives = $('.active');
+    					var checkedIds = {};
+    					actives.each(function(){
+      						var peerId = $(this).attr('id');
+						if (!checkedIds[peerId]){
+        						var conns = peer.connections[peerId];
+        						for (var i = 0, ii = conns.length; i < ii; i += 1){
+								var conn = conns[i];
+								fn(conn, $(this));
+							}
+						}
+						checkedIds[peerId] = 1;
+					});
+				}
+
+  				// Show browser version
+  				$('#browsers').text(navigator.userAgent);
+			});
+
+			/*// Make sure things clean up properly.
+			window.onunload = window.onbeforeunload = function(e) {
+				if (!!peer && !peer.destroyed) peer.destroy();
+			};
+
+			// Make sure things clean up properly.
+			window.onunload = window.onbeforeunload = function(e) {
+				if (!!peer && !peer.destroyed) peer.destroy();
+			}; */
+var ht;
+var wd;
+$(function(){
+	ran = document.getElementById("range");
+	input = document.getElementById("input");
+	input.addEventListener('change',handleFiles);
+	function handleFiles(e) {
+	    ctxSrc = document.getElementById('canvas-src').getContext('2d');
+	    ctxDest = document.getElementById('canvas-dest').getContext('2d');
+	    var img = new Image;
+	    img.src = URL.createObjectURL(e.target.files[0]);
+	    img.onload = function() {
+			ht = img.height;
+		    wd = img.width;
+		    document.getElementById('canvas-src').setAttribute("width",wd);
+		    document.getElementById('canvas-src').setAttribute("height",ht);
+		    document.getElementById('canvas-dest').setAttribute("width",wd);
+		    document.getElementById('canvas-dest').setAttribute("height",ht);
+		    document.getElementById('endimage').setAttribute("width",wd);
+		    document.getElementById('endimage').setAttribute("height",ht);
+	    	ctxSrc.drawImage(img,0,0,wd,ht);
+			ctxDest.drawImage(img,0,0,wd,ht);
+	  	    iitm_image_proc(1000);
+	  	    document.getElementById('dest').src = document.getElementById('canvas-dest').toDataURL('image/jpeg');
+	  	    document.getElementById('org').src = document.getElementById('canvas-src').toDataURL('image/jpeg');
+			document.getElementById("a").disabled = false;
+			document.getElementById("b").disabled = false;
+	   	}
+	}
+});
+
+function iitm_image_proc(x){
+	imPixels = ctxSrc.getImageData(0,0,wd,ht);
+	for(var i = 0; i < imPixels.data.length ; i+=4){
+		  var avg =  ( ( (imPixels.data[i]) * 0.299 ) + ( (imPixels.data[i + 1]) * 0.587 ) + ( (imPixels.data[i + 2]) * 0.114 ) );
+		  imPixels.data[i] = avg;
+		  imPixels.data[i + 1] = avg;
+		  imPixels.data[i + 2] = avg;
+	}
+	var s=0;
+	var vari=0;
+	for(var i = 0; i < imPixels.data.length ; i+=4){
+		  s=s+imPixels.data[i];
+	}
+	s=s/(imPixels.data.length/4);
+	for(var i = 0; i < imPixels.data.length ; i+=4){
+		  vari=vari+(imPixels.data[i]-s)*(imPixels.data[i]-s);		
+	}
+	vari=vari/(imPixels.data.length/4);
+	var dev;
+	dev=Math.sqrt(vari);
+	if(x==1000){
+		if(s>168){
+			n=(((dev/s-0.18))*1.5)+0.45;
+			q=n*dev;
+		}
+		else{
+			if(dev>=(0.4*s)){
+				q=-0.1*s;
+			}
+			else{
+				if(dev/s<=0.24){
+					q=1*dev;
+				}	
+				else{
+					q=1.5*dev;
+				}
+			}
+		}
+		n=q/dev;
+		ran.value=n;
+	}
+	else q=x*dev;
+	for(var i = 0; i < imPixels.data.length ; i+=4){
+		  if(imPixels.data[i]<(s-q)){
+				imPixels.data[i]=imPixels.data[i+1]=imPixels.data[i+2]=0;
+		  }
+			else{
+				imPixels.data[i]=imPixels.data[i+1]=imPixels.data[i+2]=255;
+	 		}
+	}
+	ctxDest.putImageData(imPixels,0,0);
+	document.getElementById('dest').src = document.getElementById('canvas-dest').toDataURL('image/jpeg');
+}
+
+function set(x){
+	if(x == 1){
+		var ID = ctxDest.getImageData(0,0,wd,ht);
+	}
+	if(x == 2){
+		var ID = ctxSrc.getImageData(0,0,wd,ht);
+	}
+	document.getElementById("endimage").getContext("2d").putImageData(ID,0,0);
+}
+
+function clear(){
+	document.getElementById("canvas-dest").getContext("2d").clearRect(0,0,wd,ht);
+	document.getElementById("canvas-src").getContext("2d").clearRect(0,0,wd,ht);
+	document.getElementById("endimage").getContext("2d").clearRect(0,0,wd,ht);
+}
+
+function dis(){
+	document.getElementById("butt").disabled = true;
+}
+
+</script>
+
+<title>Entrayn Sender Form</title>
+
+</head>
+
+<body>
+
+<h1 style="text-align:center;" ><u>Entrayn Upload Form</u></h1>
+<input type="file" id="input" onclick = "clear();"/><br>
+<h3 id="c" >Click on one of the following images to Upload:</h3>
+<button  id="a" onclick = "set(1);" disabled ><img id="dest" src="" width="400"/><canvas style="display:none;" id="canvas-dest"></canvas> <br>Processed Image</button><br>
+<div id="d">Darker <input onchange="iitm_image_proc(value)" id="range" type="range" id="a" min="-2.0" value="0" max="2.0" step="0.1" />Lighter</div>
+<button  id="b" onclick = "set(2);" disabled><img id="org" src="" width="400"/> <canvas style="display:none;" id="canvas-src"></canvas> <br>Original Image</button><b>
+<h3>Sent Image:</h3>
+<canvas id="endimage"></canvas><br>
+<form id="send">
+	<input class="button" id="butt" type="submit" value="Send Image" onclick="dis();">
+</form><br>
+<div id="connections"></div>
+<button id="close" onclick="dis();">Done</button>
+</body>
+
+</html>
+
